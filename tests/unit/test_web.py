@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 import re
 import stat
 from pathlib import Path
@@ -231,7 +232,9 @@ def test_upload_preview_cancel_and_rejection(web: Web) -> None:
     ).text
     assert "Import 52 transactions" in preview and "my_statement.csv" in preview
     uploads = list((web.paths.home / "uploads").rglob("*.csv"))
-    assert len(uploads) == 1 and stat.S_IMODE(uploads[0].stat().st_mode) == 0o600
+    assert len(uploads) == 1
+    if os.name != "nt":  # Windows has no Unix permission bits
+        assert stat.S_IMODE(uploads[0].stat().st_mode) == 0o600
     out = web.post(
         "/api/import/commit", {"import_id": import_id_of(preview), "token": token_of(preview), "answer": "no"}
     ).text

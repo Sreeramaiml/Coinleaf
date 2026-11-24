@@ -1,3 +1,4 @@
+import os
 import re
 import sqlite3
 from datetime import date
@@ -66,6 +67,9 @@ def test_missing_key_for_existing_db_is_refused(tmp_path: Path) -> None:
         open_ledger(tmp_path / "missing.db", MemoryKeyStore())
 
 
+@pytest.mark.skipif(
+    os.name == "nt", reason="Windows has no Unix permission bits; the folder's ACL protects it"
+)
 def test_file_keystore_refuses_readable_key(tmp_path: Path) -> None:
     ks = FileKeyStore(tmp_path / "keys")
     ks.set(DB_KEY, "a" * 64)

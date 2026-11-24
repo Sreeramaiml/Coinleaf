@@ -3,6 +3,7 @@ no Keychain (MemoryKeyStore / FileKeyStore), no network."""
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
@@ -23,6 +24,10 @@ from finassist.demo.setup import DemoResult, build_demo
 from finassist.ingest.pipeline import Staging
 
 TODAY = date(2026, 11, 5)
+
+# CLI tests run the app in subprocesses and read its output. A CI terminal is 80 columns wide,
+# which would wrap long messages (and file paths) mid-sentence; give them room instead.
+os.environ["COLUMNS"] = "250"
 
 # Password hashing at full strength takes ~0.1 s per hash; tests use a cheaper cost. Each stored
 # hash records its own parameters, so this changes speed only, not behaviour.
