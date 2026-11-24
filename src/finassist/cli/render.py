@@ -13,7 +13,10 @@ from finassist.agent.tools.base import UserTable
 
 __all__ = ["console", "render_tables", "render_turn"]
 
-console = Console(width=None if sys.stdout.isatty() else 118, highlight=False, soft_wrap=False)
+# Piped or redirected output (scripts, logs, tests) isn't hard-wrapped mid-sentence; tables
+# still get a fixed width there.
+_tty = sys.stdout.isatty()
+console = Console(width=None if _tty else 118, highlight=False, soft_wrap=not _tty)
 
 MAX_ROWS = 60
 

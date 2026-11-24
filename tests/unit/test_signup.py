@@ -97,7 +97,8 @@ def test_new_user_gets_an_own_private_ledger(tmp_path: Path) -> None:
     assert c.post("/api/ledger/create", headers={"X-CSRF-Token": w.guard.csrf}).json()["ok"]
     assert (w.paths.home / ravi.folder / "ledger.db").exists()
     settings = c.get("/settings").text
-    assert ravi.folder in settings and "Ravi Kumar" in settings and "+91 91234 56789" in settings
+    # the folder path is shown with \\ on Windows, so look for the account id in it
+    assert ravi.id in settings and "Ravi Kumar" in settings and "+91 91234 56789" in settings
     # and the owner still has theirs, untouched
     assert "owner chai" in w.client.get("/transactions").text
 

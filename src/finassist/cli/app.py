@@ -373,7 +373,14 @@ def password_reset(
         console.print(f"There are several accounts ({names}). Run: coinleaf password reset <username>")
         raise typer.Exit(1)
     who = account.username or "the first account"
-    new = typer.prompt(f"New password for {who}", hide_input=True, confirmation_prompt=True)
+    if sys.stdin.isatty():
+        new = typer.prompt(f"New password for {who}", hide_input=True, confirmation_prompt=True)
+    else:  # piped input (scripts): hidden prompts read the keyboard directly on Windows and would wait
+        first, again = sys.stdin.readline().rstrip("\r\n"), sys.stdin.readline().rstrip("\r\n")
+        if first != again:
+            console.print("[red]Not changed: the two passwords don't match.[/red]")
+            raise typer.Exit(1)
+        new = first
     try:
         store.set_password(account.id, new, new)
     except PasswordError as e:
