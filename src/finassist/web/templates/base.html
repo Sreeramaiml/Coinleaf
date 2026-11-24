@@ -22,6 +22,7 @@
   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17v.5"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M12 16l-5-5M12 16l5-5M4 20h16"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
@@ -43,8 +44,9 @@
       {% if kind == 'demo' %}<span class="pill demo">Demo · made-up data</span>{% else %}<span class="pill mine">Your ledger</span>{% endif %}
 <div class="foot-buttons">
       <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch light or dark theme"><svg class="icon icon-moon"><use href="#i-moon"/></svg><svg class="icon icon-sun"><use href="#i-sun"/></svg><span>Theme</span></button>
-      <button type="button" class="theme-toggle" data-lock title="Lock Coinleaf now; your password unlocks it"><svg class="icon"><use href="#i-lock"/></svg><span>Lock</span></button>
+      <button type="button" class="theme-toggle" data-lock title="Log out of Coinleaf now"><svg class="icon"><use href="#i-logout"/></svg><span>Log out</span></button>
       </div>
+      <div class="foot-note signed-in">Logged in as <strong>{{ me.display_name }}</strong>{% if me.username and me.name %} <span class="muted-side">({{ me.username }})</span>{% endif %}</div>
       <div class="foot-note"><svg class="icon"><use href="#i-lock"/></svg>Private: runs only on {{ computer }}</div>
     </div>
   </aside>

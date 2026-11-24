@@ -1,27 +1,30 @@
 {% extends "auth_base.html" %}
-{% block title %}Sign in{% endblock %}
+{% block title %}Log in{% endblock %}
 {% block content %}
 {% if needs_launch %}
   <h1 id="auth-title">Set up Coinleaf</h1>
-  <p class="muted">Coinleaf doesn't have a password yet. To create one, open the link that Coinleaf printed in the terminal window when it started (it begins with <code>http://127.0.0.1</code>).</p>
-  <p class="muted small">This makes sure only the person who started Coinleaf can set its password.</p>
+  <p class="muted">Coinleaf doesn't have any accounts yet. To create the first one, open the link that Coinleaf printed in the terminal window when it started (it begins with <code>http://127.0.0.1</code>).</p>
+  <p class="muted small">The first account owns the ledger already on {{ computer }}, so only the person who started Coinleaf can create it. Others can sign up afterwards and get their own private ledger.</p>
 {% else %}
   <h1 id="auth-title">Welcome back</h1>
-  <p class="muted">Enter your password to unlock Coinleaf.</p>
+  <p class="muted">Enter your username and password to log in to Coinleaf.</p>
   {% if note %}<div class="msg info">{{ note }}</div>{% endif %}
+  {% if choose_username %}<div class="msg info">Coinleaf now signs in with a username as well. Choose one below and enter your current password; the username is saved when the password is right.</div>{% endif %}
   <form data-api="/login" data-target="#auth-result" class="auth-form" autocomplete="on">
-    <input type="text" name="username" value="Coinleaf" autocomplete="username" hidden>
+    <label class="field" for="username">{{ 'Choose a username' if choose_username else 'Username' }}</label>
+    <input id="username" type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" required autofocus>
     <label class="field" for="password">Password</label>
     <div class="pw">
-      <input id="password" type="password" name="password" autocomplete="current-password" required autofocus>
+      <input id="password" type="password" name="password" autocomplete="current-password" required>
       <button type="button" class="pw-toggle" data-pw-toggle aria-controls="password" aria-pressed="false">Show</button>
     </div>
     <div id="auth-result" role="alert" aria-live="assertive"></div>
-    <button type="submit" class="btn primary block">Unlock</button>
+    <button type="submit" class="btn primary block">Log in</button>
   </form>
+  <p class="auth-switch">New to Coinleaf? <a href="/signup">Create an account</a></p>
   <details class="auth-help">
-    <summary>Forgot your password?</summary>
-    <p class="muted small">Open a terminal in the Coinleaf folder, run <code>uv run coinleaf password reset</code>, then start Coinleaf again and create a new password. Your ledger and its data are not affected.</p>
+    <summary>Forgot your username or password?</summary>
+    <p class="muted small">Your username is shown in Coinleaf's sidebar and Settings while you're logged in. To see every username, run <code>uv run coinleaf users list</code> in a terminal in the Coinleaf folder. To set a new password, run <code>uv run coinleaf password reset &lt;username&gt;</code>. Your data is not affected.</p>
   </details>
 {% endif %}
 {% endblock %}

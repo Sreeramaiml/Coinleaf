@@ -19,7 +19,16 @@ from finassist.web.app import create_app
 from finassist.web.security import COOKIE, Guard
 from finassist.web.state import WebConfig
 
+USERNAME = "Asha"
 PASSWORD = "correct horse battery"
+OWNER = {
+    "name": "Asha Rao",
+    "mobile": "98765 43210",
+    "email": "asha@example.com",
+    "username": USERNAME,
+    "password": PASSWORD,
+    "confirm": PASSWORD,
+}
 
 
 class Web:
@@ -27,16 +36,20 @@ class Web:
         self.paths = Paths(tmp / "home", tmp / "home" / "logs", tmp / "home" / "reports")
         if build:
             build_demo(self.paths).ledger.close()
+        stores: dict[Path, MemoryKeyStore] = {}  # one in-memory key store per account folder
         self.cfg = WebConfig(
-            main_paths=self.paths, real_keys=MemoryKeyStore(), config_path=tmp / "config.toml"
+            main_paths=self.paths,
+            real_keys=MemoryKeyStore(),
+            config_path=tmp / "config.toml",
+            keys_for=lambda home: stores.setdefault(home, MemoryKeyStore()),
         )
-        self.guard = Guard({"testserver"}, tmp / "home" / "app-password.json")
+        self.guard = Guard({"testserver"}, self.paths.home)
         self.client = TestClient(create_app(self.cfg, self.guard))
         # first start: the launch link leads to creating the password, which signs this browser in
         r = self.client.get(self.guard.launch_path(), follow_redirects=False)
         assert r.status_code == 303 and r.headers["location"] == "/setup"
         self.client.headers["X-CSRF-Token"] = self.guard.csrf
-        r = self.client.post("/setup", data={"password": PASSWORD, "confirm": PASSWORD})
+        r = self.client.post("/setup", data=OWNER)
         assert r.headers.get("x-redirect") == "/dashboard", r.text
 
     def post(self, url: str, data: dict[str, Any] | None = None, **kw: Any) -> Any:
@@ -78,7 +91,7 @@ def test_access_needs_a_signed_in_session(tmp_path: Path) -> None:
     assert r.status_code == 303 and r.headers["location"] == "/login"
     assert anon.get("/dashboard", follow_redirects=False).status_code == 303  # the link alone isn't enough
     anon.headers["X-CSRF-Token"] = w.guard.csrf
-    r = anon.post("/login", data={"password": PASSWORD})
+    r = anon.post("/login", data={"username": USERNAME, "password": PASSWORD})
     cookie = r.headers["set-cookie"].lower()
     assert "httponly" in cookie and "samesite=strict" in cookie and COOKIE in cookie
     assert anon.get("/dashboard", follow_redirects=False).status_code == 200

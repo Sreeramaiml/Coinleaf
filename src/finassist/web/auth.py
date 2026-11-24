@@ -20,38 +20,42 @@ MAX_WAIT = 15 * 60
 
 
 class Sessions:
+    """Signed-in browsers: random session id -> (account id, time of last use)."""
+
     def __init__(
         self, idle_seconds: float = IDLE_MINUTES * 60, now: Callable[[], float] = time.monotonic
     ) -> None:
         self.idle = idle_seconds
         self.now = now
-        self._last: dict[str, float] = {}
+        self._s: dict[str, tuple[str, float]] = {}
 
-    def new(self) -> str:
+    def new(self, account_id: str) -> str:
         sid = secrets.token_urlsafe(32)
-        self._last[sid] = self.now()
+        self._s[sid] = (account_id, self.now())
         return sid
 
-    def valid(self, sid: str | None, *, touch: bool = True) -> bool:
-        """True if the session exists and has been used within the idle time."""
+    def user(self, sid: str | None, *, touch: bool = True) -> str | None:
+        """The signed-in account id, if the session exists and was used within the idle time."""
         if not sid:
-            return False
-        last = next((v for k, v in self._last.items() if secrets.compare_digest(k, sid)), None)
-        if last is None:
-            return False
+            return None
+        key = next((k for k in self._s if secrets.compare_digest(k, sid)), None)
+        if key is None:
+            return None
+        account_id, last = self._s[key]
         if self.now() - last > self.idle:
-            self._last.pop(sid, None)
-            return False
+            del self._s[key]
+            return None
         if touch:
-            self._last[sid] = self.now()
-        return True
+            self._s[key] = (account_id, self.now())
+        return account_id
 
     def end(self, sid: str | None) -> None:
         if sid:
-            self._last.pop(sid, None)
+            self._s.pop(sid, None)
 
-    def end_all_except(self, keep: str | None) -> None:
-        self._last = {k: v for k, v in self._last.items() if k == keep}
+    def end_others(self, account_id: str, keep: str | None) -> None:
+        """Sign out this account's other browsers (after a password or username change)."""
+        self._s = {k: v for k, v in self._s.items() if v[0] != account_id or k == keep}
 
 
 class Throttle:

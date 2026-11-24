@@ -65,7 +65,7 @@ Amounts are not redacted: they are the answer.
 
 ## The browser app
 
-`coinleaf` opens a page served by the app itself at `http://127.0.0.1:<port>`. It listens on your computer only (127.0.0.1), accepts only requests addressed to that exact local address, requires you to sign in with your Coinleaf password (first-time setup is only possible from the launch link printed in the terminal), and loads no scripts, fonts or images from the internet. **The browser app uses no AI and makes no outbound connections at all**: it runs under the strict, loopback-only network guard. Only the terminal command `coinleaf chat` contacts an AI provider, as described above. Your theme choice is stored in the browser; nothing else is.
+`coinleaf` opens a page served by the app itself at `http://127.0.0.1:<port>`. It listens on your computer only (127.0.0.1), accepts only requests addressed to that exact local address, requires you to sign in with a Coinleaf username and password, and shows each person only their own data (creating the first account is only possible from the launch link printed in the terminal), and loads no scripts, fonts or images from the internet. **The browser app uses no AI and makes no outbound connections at all**: it runs under the strict, loopback-only network guard. Only the terminal command `coinleaf chat` contacts an AI provider, as described above. Your theme choice is stored in the browser; nothing else is.
 
 ## How "nothing else leaves" is enforced
 
@@ -83,7 +83,8 @@ A blocked attempt raises an error and is recorded. Tests run the guard in a sepa
 | Ledger (transactions, provenance, audit log, query receipts) | `ledger.db` in the data folder: macOS `~/Library/Application Support/finassist/`, Windows `%LOCALAPPDATA%\finassist\`, Linux `~/.local/share/finassist/` | SQLCipher, 256-bit key in the OS secret store; owner-only file (mode 0600 on macOS/Linux; on Windows the per-user profile folder's access rules) |
 | API keys | OS secret store (or `GEMINI_API_KEY` / `GOOGLE_API_KEY` / `ANTHROPIC_API_KEY`, or an owner-only `.env`) | OS secret store |
 | LLM usage log | inside the encrypted ledger (`llm_call` table) | time, provider, model, token counts, cost estimate, number of redactions. **Never** the messages or results |
-| Browser app password | `app-password.json` in the data folder: a salted scrypt hash only, never the password; owner-only file | resettable with `coinleaf password reset` by anyone signed in to your computer account |
+| Accounts | `users.json` in the data folder: each person's name, mobile number, email, username and a salted scrypt hash of the password (never the password); owner-only file, not encrypted. Mobile and email are never sent anywhere or verified | password reset with `coinleaf password reset <username>` by anyone signed in to your computer account |
+| Each account's money | the first account: the data folder itself; later accounts: `users/<id>/`, each with its own encrypted ledger (own key in the OS secret store), demo and uploads | SQLCipher, per account |
 | Sign-in sessions | memory only; end after 15 minutes without use, on Lock, and when Coinleaf stops | HttpOnly, SameSite=Strict cookie |
 | Chat history (terminal and browser app) | memory only; not written to disk | — |
 | Statements uploaded in the browser app | `…/finassist/uploads/`, mode 0600, deleted after import or cancel and on every start | data folder permissions |

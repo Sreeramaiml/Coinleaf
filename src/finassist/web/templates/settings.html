@@ -12,15 +12,29 @@
 </section>
 
 <section class="card">
-  <h2>Password</h2>
-  <p class="muted small">Coinleaf asks for this password each time it opens, and locks itself after {{ idle_minutes }} minutes without use. Changing it signs out any other open browser.</p>
-  <form data-api="/api/password" data-target="#pw-result" class="pw-change" data-pw-rules>
-    <input type="text" name="username" value="Coinleaf" autocomplete="username" hidden>
+  <h2>Profile</h2>
+  {% if not me.profile_complete %}<div class="msg info">Add your name, mobile number and email to complete your account.</div>{% endif %}
+  <form data-api="/api/profile" data-target="#profile-result" class="pw-change">
+    <label class="field">Full name<input type="text" name="name" value="{{ me.name }}" autocomplete="name" maxlength="80" required></label>
+    <label class="field">Mobile number<input type="tel" name="mobile" value="{{ me.mobile_display }}" autocomplete="tel" inputmode="tel" maxlength="20" required></label>
+    <label class="field">Email<input type="email" name="email" value="{{ me.email }}" autocomplete="email" maxlength="254" required></label>
+    <div class="form-actions"><button type="submit" class="btn primary">Save profile</button></div>
+    <div id="profile-result" role="status"></div>
+  </form>
+  <p class="muted small">These stay on {{ computer }}; Coinleaf never sends anything to them.</p>
+</section>
+
+<section class="card">
+  <h2>Sign-in</h2>
+  <p class="muted small">Logged in as <strong>{{ me.username or '—' }}</strong>. Coinleaf asks for your username and password each time it opens, and logs you out after {{ idle_minutes }} minutes without use. Change the username, the password, or both; your current password confirms it's you. Saving logs out any other open browser.</p>
+  <form data-api="/api/password" data-target="#pw-result" class="pw-change">
+    <label class="field">Username<input type="text" name="username" value="{{ me.username or '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" required></label>
     <label class="field">Current password<input type="password" name="current" autocomplete="current-password" required></label>
-    <label class="field">New password<input id="password" type="password" name="password" autocomplete="new-password" minlength="8" required></label>
-    <label class="field">Type the new one again<input id="confirm" type="password" name="confirm" autocomplete="new-password" required></label>
-    <ul class="pw-rules"><li data-rule="length">At least 8 characters</li><li data-rule="match">Both entries match</li></ul>
-    <div class="form-actions"><button type="submit" class="btn primary">Change password</button><button type="button" class="btn" data-lock>Lock now</button></div>
+    <span></span>
+    <label class="field">New password <span class="muted small">(leave empty to keep it)</span><input id="password" type="password" name="password" autocomplete="new-password" minlength="8"></label>
+    <label class="field">Type the new one again<input id="confirm" type="password" name="confirm" autocomplete="new-password"></label>
+    <span></span>
+    <div class="form-actions"><button type="submit" class="btn primary">Save changes</button><button type="button" class="btn" data-lock>Log out</button></div>
     <div id="pw-result" role="status"></div>
   </form>
 </section>

@@ -32,10 +32,12 @@ app = typer.Typer(
 )
 account_app = typer.Typer(help="Manage accounts.")
 config_app = typer.Typer(help="Configuration and secrets.")
-password_app = typer.Typer(help="The password that unlocks the browser app.")
+password_app = typer.Typer(help="Passwords for the browser app's accounts.")
+users_app = typer.Typer(help="The people with a Coinleaf account (sign-ins, not bank accounts).")
 app.add_typer(account_app, name="account")
 app.add_typer(config_app, name="config")
 app.add_typer(password_app, name="password")
+app.add_typer(users_app, name="users")
 
 _state: dict[str, Env] = {}
 
@@ -347,24 +349,53 @@ def _paid_tier_hint() -> str:
 
 
 @password_app.command("reset")
-def password_reset(yes: bool = typer.Option(False, "--yes", help="Don't ask for confirmation.")) -> None:
-    """Forget the browser app's password, so a new one can be created (your data is not touched)."""
-    from finassist.config.password import FILE_NAME, PasswordStore
+def password_reset(
+    username: str = typer.Argument(None, help="Whose password; not needed when there is only one account."),
+) -> None:
+    """Set a new password for a Coinleaf account from the terminal (data untouched)."""
+    from finassist.config.accounts import AccountStore
+    from finassist.config.password import PasswordError
 
-    store = PasswordStore(default_paths().home / FILE_NAME)
-    if not store.is_set():
-        console.print("No password is set. The next time Coinleaf starts, its link lets you create one.")
+    store = AccountStore(default_paths().home)
+    accounts = store.accounts()
+    if not accounts:
+        console.print("No accounts yet. Start Coinleaf and open the link it prints to create the first one.")
         return
-    if not yes and not typer.confirm(
-        "Forget the current password? You'll create a new one at the next start"
-    ):
-        console.print("Nothing changed.")
+    names = ", ".join(a.username or "(first account)" for a in accounts)
+    if username:
+        account = store.find(username)
+        if account is None:
+            console.print(f"[red]No account called {username}.[/red] Accounts: {names}")
+            raise typer.Exit(1)
+    elif len(accounts) == 1:
+        account = accounts[0]
+    else:
+        console.print(f"There are several accounts ({names}). Run: coinleaf password reset <username>")
         raise typer.Exit(1)
-    store.clear()
-    console.print(
-        "Password forgotten. Start Coinleaf (or restart it if it's running) and open the link it prints "
-        "to create a new one. Your ledger and data are unchanged."
-    )
+    who = account.username or "the first account"
+    new = typer.prompt(f"New password for {who}", hide_input=True, confirmation_prompt=True)
+    try:
+        store.set_password(account.id, new, new)
+    except PasswordError as e:
+        console.print(f"[red]Not changed: {e}.[/red]")
+        raise typer.Exit(1) from None
+    console.print(f"Password changed for {who}. Sign in with it in the browser; the data is unchanged.")
+
+
+@users_app.command("list")
+def users_list() -> None:
+    """The people who can sign in to the browser app (not bank accounts)."""
+    from finassist.config.accounts import AccountStore
+
+    accounts = AccountStore(default_paths().home).accounts()
+    if not accounts:
+        console.print("No accounts yet. Start Coinleaf and open the link it prints to create the first one.")
+        return
+    for a in accounts:
+        role = "first account (the original ledger)" if a.owner else f"own folder {a.folder}"
+        console.print(
+            f"{a.username or '(no username yet)'}  ·  {a.name or '—'}  ·  {role}  ·  since {a.created[:10]}"
+        )
 
 
 def main() -> None:

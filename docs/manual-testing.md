@@ -16,16 +16,21 @@ If a result differs from what's written here, note the step number and the outpu
 
 | # | Do | Expect |
 |---|---|---|
-| G.0a | First start (or after `uv run coinleaf password reset`): the tab opened by the launch link | **Create your password** page with the logo; the checklist ticks "At least 8 characters" and "Both entries match" as you type; **Show** reveals the password |
-| G.0b | Create a password with 5 characters, then with two different entries | "Not saved: use at least 8 characters." / "…the two passwords don't match."; nothing saved |
-| G.0c | Create a valid password | you land on the Dashboard, signed in |
-| G.0d | Open `http://127.0.0.1:8765/dashboard` in a private window | the **Welcome back** sign-in page, not the dashboard |
-| G.0e | Sign in there with a wrong password 5 times, then the right one | "That password isn't right." four times, then "Try again in 30 seconds"; the right password also waits until the time is up |
-| G.0f | Click **Lock** in the sidebar | "You've locked Coinleaf." on the sign-in page; Back doesn't show your figures |
-| G.0g | Leave the app untouched for 15 minutes | the tab moves to the sign-in page: "Coinleaf locked itself after 15 minutes without use." |
-| G.0h | **Settings → Password**: wrong current password; then a valid change | "Your current password isn't right."; then "Password changed."; the old password no longer signs in |
+| G.0a | First start (or with no `users.json`): the tab opened by the launch link | **Set up Coinleaf** page with the logo: About you (Full name, Mobile number, Email) and Sign-in (Username, Password, Type it again); the checklist ticks as you type; **Show** reveals the password |
+| G.0b | Leave the name empty; mobile `12345`; email `asha@`; username `ab`; a 5-character password | each refused with its own "Not saved: …" message; nothing saved |
+| G.0c | A valid username and password | you land on the Dashboard; the sidebar says "Logged in as <your name>" |
+| G.0c2 | Open `http://127.0.0.1:8765` in a private window → **Create an account** → fill in another person's details | lands on that person's Dashboard (the Demo); sidebar "Logged in as <their name>"; **My ledger** is empty and asks to be created; none of the first account's data appears anywhere |
+| G.0c3 | Sign up again with a username or email that's already used | "Not saved: that username is taken…" / "…an account with this email already exists." |
+| G.0c4 | **Settings → Profile**: change the mobile number to `098765 43210` → **Save profile** | "Profile saved."; it shows as `+91 98765 43210` |
+| G.0d | Open `http://127.0.0.1:8765/dashboard` in a private window | the **Welcome back** page with Username and Password, not the dashboard |
+| G.0e | Sign in with a wrong username, then with a wrong password | the same message both times: "That username or password isn't right." |
+| G.0f | Sign in with your username in CAPITALS and the right password | signed in (the username ignores case) |
+| G.0g | 5 wrong attempts in a row, then the right details | the 5th says "Try again in 30 seconds"; the right details also wait until the time is up |
+| G.0h | Click **Log out** in the sidebar | "You've logged out." on the login page; Back doesn't show your figures |
+| G.0i | Leave the app untouched for 15 minutes | the tab moves to the login page: "You were logged out after 15 minutes without use." |
+| G.0j | **Settings → Sign-in**: wrong current password; then change only the username; then only the password | "Your current password isn't right."; "Username changed to …"; "Password changed."; the old details no longer sign in |
 | 0.1 | `uv sync` | finishes without errors |
-| 0.2 | `uv run pytest` | `239 passed` |
+| 0.2 | `uv run pytest` | `254 passed` |
 | 0.3 | `uv run coinleaf demo --reset` | "Demo ledger built at …/finassist/demo/ledger.db", 1134 transactions generated, 27 files imported, `card_a_2026-10.csv` "left for you to import" |
 | 0.4 | (only if your key was saved before today) `uv run coinleaf config set-api-key` and paste the Gemini key, then press Enter. Don't press arrow keys | "Stored a NN-character Gemini key in the Keychain" |
 
@@ -40,7 +45,7 @@ printf '[llm]\nchat_model = "gemini-3.5-flash-lite"\n' >> ~/Library/Application\
 
 ## G. The app in your browser
 
-Start it: double-click **`Coinleaf.command`**, or run `uv run coinleaf`. A browser tab opens at `http://127.0.0.1:8765/…`. The first time, create a password; after that, sign in with it. If your own ledger exists it opens on **My ledger**; click **Demo** at the top left for these checks. Start from a fresh demo (`uv run coinleaf demo --reset`).
+Start it: double-click **`Coinleaf.command`**, or run `uv run coinleaf`. A browser tab opens at `http://127.0.0.1:8765/…`. The first time, set up the first account (name, mobile, email, username, password); after that, sign in with the username and password. If your own ledger exists it opens on **My ledger**; click **Demo** at the top left for these checks. Start from a fresh demo (`uv run coinleaf demo --reset`).
 
 | # | Do | Expect |
 |---|---|---|

@@ -1259,3 +1259,22 @@ Decisions changed or refined while building, recorded per plan §1.2 item 4. Det
 - **Recovery:** `coinleaf password reset` forgets the password; the ledger is untouched.
 - **Scope, stated plainly:** the password guards the open app. The ledger's encryption key stays in the OS secret store, and the password is not used to derive it, so a forgotten password never means lost data. The flip side is that anyone signed in to the owner's computer account can reset the app password.
 
+### Username on the sign-in page (2026-11-24, owner's request)
+
+- **Sign-in fields:** the sign-in and setup pages ask for a **username and password**, and the sidebar shows "Signed in as …".
+- **Stored record:** the record (`app-password.json`, version 2) adds `username` next to the scrypt hash.
+- **Username rules:** usernames are 3–32 characters (`[A-Za-z0-9][A-Za-z0-9._@-]`), stored as typed and compared case-insensitively in constant time.
+- **No information leak:** the password hash is always computed, so a wrong username takes as long as a wrong password and gets the same message ("That username or password isn't right."). Wrong attempts of either kind count toward the throttle.
+- **Settings → Sign-in:** changes the username, the password or both after the current password is confirmed; other sessions are signed out.
+- **Upgrade:** a version-1 file (password only) keeps working. The sign-in page asks the owner to choose a username, which is saved only when the password is right.
+
+### Sign-up and separate accounts (2026-11-24, owner's request)
+
+- **What:** new people can **create an account** from the sign-in page with full name, mobile number, email, username and password. The owner chose **a private ledger per account** over a shared household ledger or a single owner.
+- **Storage** (`config/accounts.py`, `users.json`, owner-only, written atomically): one record per account with id, username, name, mobile (stored as `+` and digits; 10 digits starting 6–9 are read as +91), email (domain lower-cased), folder, created, and the scrypt salt/hash/parameters. Username and email are unique, case-insensitively. A wrong or unknown username still computes a hash (a decoy record), so timing doesn't reveal which usernames exist.
+- **Data per account:** the first account's folder is the data folder itself (`folder = ""`), so the ledger that existed before accounts stays with it. Every later account gets `users/<id>/` with its own SQLCipher ledger and key (a secret-store entry per folder via `KeychainStore(home)`, or a file store when `FINASSIST_KEYSTORE=file`), its own demo and its own uploads folder. `web/state.py` keeps one `UserSpace` per account, and every route resolves the signed-in account's space; sessions map to an account id.
+- **Who can create the first account:** only a browser holding the launch cookie (`/setup`), because that account inherits the existing ledger. `/signup` is open once the first account exists, and always starts with an empty folder.
+- **Upgrade:** an `app-password.json` from before accounts becomes the first account the first time `users.json` is read. A missing username is chosen at the next sign-in; profile fields are filled in under Settings → Profile.
+- **Terminal:** `coinleaf users list`, and `coinleaf password reset [<username>]`, which sets a new password asked twice with input hidden. Terminal commands still act on the first account's ledger.
+- **Not done:** mobile/email are not verified (no network by design), and there's no account deletion yet.
+

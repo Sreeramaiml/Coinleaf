@@ -43,9 +43,13 @@ uv run coinleaf
 
 Your browser opens the app at `http://127.0.0.1:…`. It runs only on your computer: nothing outside it can connect. Keep the terminal window open while you use it; close it (or press Ctrl+C) to stop.
 
-**Signing in.** The first time, Coinleaf asks you to **create a password** (at least 8 characters). Only the browser opened by the link printed in the terminal can do this, so nobody else on the computer can claim the app first. After that, every visit starts at the **sign-in page**; `http://127.0.0.1:8765` works as a bookmark. Coinleaf **locks itself after 15 minutes** without mouse or keyboard use (the page clears, so figures don't stay on screen), and the **Lock** button in the sidebar locks it at once. Restarting Coinleaf also signs you out. After 5 wrong passwords each further try has to wait: 30 seconds, then 60, and so on up to 15 minutes. Change the password in **Settings**. If you forget it, run `uv run coinleaf password reset`, then start Coinleaf again and create a new one; your ledger isn't affected.
+**Accounts and signing in.** The first time, the tab opened by the launch link asks you to **set up Coinleaf**: your full name, mobile number, email, a **username** (3–32 letters, digits, `. _ - @`) and a **password** (at least 8 characters). This first account owns the ledger already on the computer, so only the browser opened by the link printed in the terminal can create it.
 
-The password protects the open app. It doesn't encrypt anything: the ledger is already encrypted with a key in the OS secret store, and anyone signed in to your computer account can reset the app password.
+After that, every visit starts at the **sign-in page** (username + password; the username ignores upper/lower case, and a wrong username or password gets the same message). `http://127.0.0.1:8765` works as a bookmark. **New people click "Create an account"** on the sign-in page and fill in the same details. Each new account gets its **own private, encrypted ledger and demo** in its own folder, and nobody can see anyone else's money.
+
+Coinleaf **logs you out after 15 minutes** without mouse or keyboard use (the page clears, so figures don't stay on screen), and the **Log out** button in the sidebar logs you out at once. The login page's button is **Log in**. Restarting Coinleaf signs everyone out. After 5 wrong attempts each further try has to wait: 30 seconds, then 60, and so on up to 15 minutes. The sidebar shows who is signed in. **Settings** has your **Profile** (name, mobile, email) and **Sign-in** (username, password). If someone forgets their password, run `uv run coinleaf users list` to see the usernames, then `uv run coinleaf password reset <username>` to set a new one; no data is affected.
+
+Mobile numbers and emails are stored on this computer only and aren't verified: Coinleaf never goes online, so it can't send a code to them. The sign-in protects the open app. Encryption is separate: each ledger is encrypted with its own key in the OS secret store. Anyone signed in to the computer's own user account (the macOS/Windows/Linux login) can reset Coinleaf passwords from the terminal. The terminal commands (`coinleaf import`, `chat`, …) work on the first account's ledger.
 
 The app has six pages:
 
@@ -122,7 +126,8 @@ From the terminal: `uv run coinleaf import statement.pdf --ask-password`.
 | `coinleaf add` | Add one transaction with a short form |
 | `coinleaf spend PERIOD` / `income PERIOD` | Totals without the language model |
 | `coinleaf demo [--reset]` | Build the demo ledger |
-| `coinleaf password reset` | Forget the browser app's password so a new one can be created (data untouched) |
+| `coinleaf users list` | The people who have a Coinleaf account (sign-ins, not bank accounts) |
+| `coinleaf password reset [<username>]` | Set a new password for an account; asks for it twice, hidden (data untouched) |
 | `coinleaf config set-api-key [--provider gemini\|anthropic]` | Store an API key in the OS secret store (Keychain / Credential Manager / keyring) |
 
 Add `--demo` before any command to use the demo ledger, e.g. `coinleaf --demo spend last month`.

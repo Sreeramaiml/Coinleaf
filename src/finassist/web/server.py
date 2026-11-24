@@ -6,7 +6,6 @@ import socket
 import webbrowser
 from pathlib import Path
 
-from finassist.config.password import FILE_NAME as PASSWORD_FILE
 from finassist.config.paths import Paths
 from finassist.db.keys import KeyStore
 from finassist.web.security import Guard
@@ -44,7 +43,7 @@ def serve(
     from finassist.web.app import create_app
 
     port = free_port(port)
-    guard = Guard({f"{HOST}:{port}", f"localhost:{port}"}, main_paths.home / PASSWORD_FILE)
+    guard = Guard({f"{HOST}:{port}", f"localhost:{port}"}, main_paths.home)
     cfg = WebConfig(
         main_paths=main_paths, real_keys=real_keys, config_path=config_path, start_ledger=start_ledger
     )

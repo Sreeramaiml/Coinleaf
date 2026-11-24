@@ -35,6 +35,7 @@ from finassist.agent.tools.p0 import (
 )
 from finassist.analytics.dashboard import Dashboard, build_dashboard, data_months
 from finassist.analytics.listing import list_transactions
+from finassist.config.accounts import Account
 from finassist.config.password import MIN_LENGTH, PasswordError
 from finassist.config.system import O_BINARY, computer_name, secret_store_name
 from finassist.core.errors import FinError
@@ -50,7 +51,7 @@ from finassist.ingest.pipeline import stage_import
 from finassist.web import charts
 from finassist.web.auth import IDLE_MINUTES
 from finassist.web.security import COOKIE, Guard, GuardMiddleware
-from finassist.web.state import AppState, LedgerSession, WebConfig
+from finassist.web.state import AppState, LedgerSession, UserSpace, WebConfig
 
 __all__ = ["create_app"]
 
@@ -130,18 +131,30 @@ def create_app(cfg: WebConfig, guard: Guard) -> FastAPI:
     app.state.finassist = state
 
     # ---------------------------------------------------------------------------- helpers
+    def me(request: Request) -> Account:
+        """The signed-in account (the middleware lets no signed-out request reach a page)."""
+        a = guard.accounts.get(guard.user_id(request, touch=False))
+        if a is None:
+            raise FinError("you're logged out", hint="log in again")
+        return a
+
+    def space(request: Request) -> UserSpace:
+        a = me(request)
+        return state.space(a.id, a.folder)
+
     def kind_of(request: Request) -> str:
-        k = request.cookies.get(LEDGER_COOKIE, cfg.start_ledger)
+        k = request.cookies.get(LEDGER_COOKIE) or space(request).default_kind()
         return k if k in ("demo", "mine") else "demo"
 
     def sess(request: Request) -> LedgerSession:
-        return state.session(kind_of(request))
+        return space(request).session(kind_of(request))
 
     def page(request: Request, name: str, active: str, **extra: Any) -> Response:
         s = sess(request)
         ctx: dict[str, Any] = {
             "csrf": guard.csrf,
             "idle_minutes": IDLE_MINUTES,
+            "me": me(request),
             "kind": s.kind,
             "available": s.available,
             "active": active,
@@ -215,88 +228,181 @@ def create_app(cfg: WebConfig, guard: Guard) -> FastAPI:
             resp.set_cookie(COOKIE, session, httponly=True, samesite="strict", path="/")
         return resp
 
+    def too_many() -> Response | None:
+        wait = guard.throttle.wait_seconds()
+        if not wait:
+            return None
+        text = f"Too many wrong attempts. Try again in {wait} seconds."
+        return fragment("partials/message.html", kind="error", text=text)
+
+    def wrong(text: str) -> Response:
+        guard.throttle.failed()
+        wait = guard.throttle.wait_seconds()
+        return fragment(
+            "partials/message.html",
+            kind="error",
+            text=text + (f" Try again in {wait} seconds." if wait else ""),
+        )
+
     @app.get("/login")
     def login_page(request: Request, locked: int = 0, signed_out: int = 0, expired: int = 0) -> Response:
         if guard.signed_in(request, touch=False):
             return RedirectResponse("/dashboard", status_code=303)
-        if not guard.passwords.is_set():
+        if not guard.accounts.has_owner():
             if guard.launched(request):
                 return RedirectResponse("/setup", status_code=303)
             return auth_page(request, "login.html", needs_launch=True)
         note = (
-            f"Coinleaf locked itself after {IDLE_MINUTES} minutes without use."
+            f"You were logged out after {IDLE_MINUTES} minutes without use."
             if locked
-            else "You've locked Coinleaf."
+            else "You've logged out."
             if signed_out
-            else "That link was from an earlier start of Coinleaf. Sign in here instead."
+            else "That link was from an earlier start of Coinleaf. Log in here instead."
             if expired
             else None
         )
-        return auth_page(request, "login.html", note=note)
+        owner = guard.accounts.owner()
+        # An owner sign-in made before usernames existed: the owner picks one now.
+        choose = owner is not None and owner.username is None
+        return auth_page(request, "login.html", note=note, choose_username=choose)
 
     @app.post("/login")
-    def login(password: str = Form("")) -> Response:
-        if not guard.passwords.is_set():
-            return fragment("partials/message.html", kind="error", text="Create a password first.")
-        wait = guard.throttle.wait_seconds()
-        if wait:
-            return fragment(
-                "partials/message.html",
-                kind="error",
-                text=f"Too many wrong passwords. Try again in {wait} seconds.",
-            )
-        if not guard.passwords.verify(password):
-            guard.throttle.failed()
-            wait = guard.throttle.wait_seconds()
-            text = "That password isn't right." + (f" Try again in {wait} seconds." if wait else "")
-            return fragment("partials/message.html", kind="error", text=text)
+    def login(username: str = Form(""), password: str = Form("")) -> Response:
+        if not guard.accounts.has_owner():
+            return fragment("partials/message.html", kind="error", text="Set up Coinleaf first.")
+        blocked = too_many()
+        if blocked:
+            return blocked
+        owner = guard.accounts.owner()
+        if owner is not None and owner.username is None:  # older sign-in without a username
+            if not guard.accounts.password_ok(owner.id, password):
+                return wrong("That password isn't right.")
+            try:
+                account = guard.accounts.set_username(owner.id, username)
+            except PasswordError as e:
+                return fragment("partials/message.html", kind="error", text=f"Choose a username: {e}.")
+        else:
+            found = guard.accounts.verify(username, password)
+            if found is None:
+                return wrong("That username or password isn't right.")
+            account = found
         guard.throttle.succeeded()
-        return go("/dashboard", session=guard.sessions.new())
+        return go("/dashboard", session=guard.sessions.new(account.id))
+
+    def _create(request: Request, form: dict[str, str], *, owner: bool) -> Response:
+        try:
+            account = guard.accounts.create(**form, owner=owner)
+        except PasswordError as e:
+            return fragment("partials/message.html", kind="error", text=f"Not saved: {e}.")
+        resp = go("/dashboard", session=guard.sessions.new(account.id))
+        resp.delete_cookie(LEDGER_COOKIE, path="/")  # start on this account's own default view
+        return resp
+
+    def _signup_form(
+        name: str, mobile: str, email: str, username: str, password: str, confirm: str
+    ) -> dict[str, str]:
+        return {
+            "name": name,
+            "mobile": mobile,
+            "email": email,
+            "username": username,
+            "password": password,
+            "confirm": confirm,
+        }
 
     @app.get("/setup")
     def setup_page(request: Request) -> Response:
-        if guard.passwords.is_set() or not guard.launched(request):
+        if guard.accounts.has_owner() or not guard.launched(request):
             return RedirectResponse("/login", status_code=303)
-        return auth_page(request, "setup.html")
+        return auth_page(request, "signup.html", first=True)
 
     @app.post("/setup")
-    def setup(request: Request, password: str = Form(""), confirm: str = Form("")) -> Response:
-        if guard.passwords.is_set() or not guard.launched(request):
+    def setup(
+        request: Request,
+        name: str = Form(""),
+        mobile: str = Form(""),
+        email: str = Form(""),
+        username: str = Form(""),
+        password: str = Form(""),
+        confirm: str = Form(""),
+    ) -> Response:
+        if guard.accounts.has_owner() or not guard.launched(request):
             return go("/login")
-        try:
-            guard.passwords.set(password, confirm)
-        except PasswordError as e:
-            return fragment("partials/message.html", kind="error", text=f"Not saved: {e}.")
-        return go("/dashboard", session=guard.sessions.new())
+        return _create(request, _signup_form(name, mobile, email, username, password, confirm), owner=True)
+
+    @app.get("/signup")
+    def signup_page(request: Request) -> Response:
+        if guard.signed_in(request, touch=False):
+            return RedirectResponse("/dashboard", status_code=303)
+        if not guard.accounts.has_owner():  # the first account comes from the launch link
+            return RedirectResponse("/setup" if guard.launched(request) else "/login", status_code=303)
+        return auth_page(request, "signup.html", first=False)
+
+    @app.post("/signup")
+    def signup(
+        request: Request,
+        name: str = Form(""),
+        mobile: str = Form(""),
+        email: str = Form(""),
+        username: str = Form(""),
+        password: str = Form(""),
+        confirm: str = Form(""),
+    ) -> Response:
+        if not guard.accounts.has_owner():
+            return go("/login")
+        return _create(request, _signup_form(name, mobile, email, username, password, confirm), owner=False)
 
     @app.post("/logout")
     def logout(request: Request) -> Response:
         guard.sessions.end(request.cookies.get(COOKIE))
         resp = go("/login?signed_out=1")
         resp.delete_cookie(COOKIE, path="/")
+        resp.delete_cookie(LEDGER_COOKIE, path="/")  # the next person starts on their own view
         return resp
 
-    @app.post("/api/password")
-    def change_password(
-        request: Request, current: str = Form(""), password: str = Form(""), confirm: str = Form("")
+    @app.post("/api/profile")
+    def change_profile(
+        request: Request, name: str = Form(""), mobile: str = Form(""), email: str = Form("")
     ) -> Response:
-        wait = guard.throttle.wait_seconds()
-        if wait:
-            return fragment(
-                "partials/message.html",
-                kind="error",
-                text=f"Too many wrong passwords. Try again in {wait} seconds.",
-            )
-        if not guard.passwords.verify(current):
-            guard.throttle.failed()
-            return fragment("partials/message.html", kind="error", text="Your current password isn't right.")
-        guard.throttle.succeeded()
         try:
-            guard.passwords.set(password, confirm)
+            guard.accounts.update_profile(me(request).id, name=name, mobile=mobile, email=email)
+        except PasswordError as e:
+            return fragment("partials/message.html", kind="error", text=f"Not saved: {e}.")
+        return fragment("partials/message.html", kind="ok", text="Profile saved.")
+
+    @app.post("/api/password")
+    def change_sign_in(
+        request: Request,
+        current: str = Form(""),
+        username: str = Form(""),
+        password: str = Form(""),
+        confirm: str = Form(""),
+    ) -> Response:
+        """Change the username, the password, or both; the current password confirms it's the owner."""
+        blocked = too_many()
+        if blocked:
+            return blocked
+        account = me(request)
+        if not guard.accounts.password_ok(account.id, current):
+            return wrong("Your current password isn't right.")
+        guard.throttle.succeeded()
+        before = account.username
+        user = username.strip() or before or ""
+        try:
+            changed_user = user != before
+            if changed_user:
+                user = guard.accounts.set_username(account.id, user).username or user
+            if password or confirm:
+                guard.accounts.set_password(account.id, password, confirm)
+                done = "Username and password saved." if changed_user else "Password changed."
+            elif changed_user:
+                done = f"Username changed to {user}."
+            else:
+                return fragment("partials/message.html", kind="info", text="Nothing to change.")
         except PasswordError as e:
             return fragment("partials/message.html", kind="error", text=f"Not changed: {e}.")
-        guard.sessions.end_all_except(request.cookies.get(COOKIE))  # other open browsers must sign in again
-        return fragment("partials/message.html", kind="ok", text="Password changed.")
+        guard.sessions.end_others(account.id, request.cookies.get(COOKIE))  # other browsers sign in again
+        return fragment("partials/message.html", kind="ok", text=done)
 
     @app.get("/dashboard")
     def dashboard_page(request: Request, period: str | None = None, account: str | None = None) -> Response:
@@ -570,7 +676,7 @@ def create_app(cfg: WebConfig, guard: Guard) -> FastAPI:
             request,
             "settings.html",
             "settings",
-            data_folder=cfg.main_paths.home,
+            data_folder=space(request).paths.home,
             db_file=s.env.paths.db_file,
             config_path=cfg.config_path,
         )
@@ -591,12 +697,14 @@ def create_app(cfg: WebConfig, guard: Guard) -> FastAPI:
             if s.kind == "demo":
                 from finassist.demo.setup import build_demo
 
-                state.reset("demo")
-                build_demo(cfg.main_paths, reset=True).ledger.close()
+                sp = space(request)
+                sp.reset("demo")
+                build_demo(sp.paths, reset=True).ledger.close()
             else:
-                cfg.main_paths.ensure()
-                init_ledger(cfg.main_paths.db_file, cfg.real_keys)[0].close()
-                state.reset("mine")
+                sp = space(request)
+                sp.paths.ensure()
+                init_ledger(sp.paths.db_file, sp.keys)[0].close()
+                sp.reset("mine")
         except Exception as e:  # noqa: BLE001
             return JSONResponse({"ok": False, "error": _error_text(e)})
         return JSONResponse({"ok": True})
@@ -623,7 +731,7 @@ def create_app(cfg: WebConfig, guard: Guard) -> FastAPI:
 
     def _remove_upload(path: Path) -> None:
         path.unlink(missing_ok=True)
-        if path.parent.parent == state.uploads:
+        if path.parent.parent.name == "uploads":  # the per-upload folder made below
             path.parent.rmdir()
 
     @app.post("/api/import/preview")
@@ -641,7 +749,7 @@ def create_app(cfg: WebConfig, guard: Guard) -> FastAPI:
                 if len(data) > MAX_UPLOAD:
                     raise FinError("the file is larger than 20 MB")
                 safe = re.sub(r"[^A-Za-z0-9._-]", "_", Path(file.filename).name)[:120] or "statement"
-                folder = state.upload_dir() / os.urandom(6).hex()
+                folder = space(request).upload_dir() / os.urandom(6).hex()
                 folder.mkdir(mode=0o700)
                 dest = folder / safe
                 fd = os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL | O_BINARY, 0o600)

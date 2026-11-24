@@ -344,3 +344,13 @@ body.auth { min-height: 100vh; background:
 .pw-change .pw-rules, .pw-change .form-actions, .pw-change #pw-result { grid-column: 1 / -1; }
 .pw-change .form-actions { display: flex; gap: 8px; }
 @media (max-width: 720px) { .pw-change { grid-template-columns: 1fr; } }
+.hint { margin: -2px 0 0; font-size: 12.5px; color: var(--muted); }
+.foot-note.signed-in { display: block; color: var(--side-ink); }
+.foot-note.signed-in strong { color: var(--side-ink-strong); font-weight: 600; word-break: break-all; }
+.auth-group { border: 0; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.auth-group legend { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+  padding: 0; margin-bottom: 2px; }
+.auth-group + .auth-group { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 8px; }
+.auth-form input[type=email], .auth-form input[type=tel] { width: 100%; padding: 11px 12px; font-size: 16px; }
+.auth-switch { text-align: center; font-size: 14px; margin: 10px 0 0; }
+.muted-side { color: var(--side-ink); opacity: .8; }

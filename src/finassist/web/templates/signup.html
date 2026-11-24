@@ -1,0 +1,44 @@
+{% extends "auth_base.html" %}
+{% block title %}{{ 'Set up Coinleaf' if first else 'Create your account' }}{% endblock %}
+{% block content %}
+  {% if first %}
+  <h1 id="auth-title">Set up Coinleaf</h1>
+  <p class="muted">Create the first account. It owns the ledger already on {{ computer }}. You'll log in with the username and password each time you open the app.</p>
+  {% else %}
+  <h1 id="auth-title">Create your account</h1>
+  <p class="muted">Your account gets its own private, encrypted ledger. Nobody else who uses Coinleaf on {{ computer }} can see it.</p>
+  {% endif %}
+  <form data-api="{{ '/setup' if first else '/signup' }}" data-target="#auth-result" class="auth-form" data-pw-rules novalidate>
+    <fieldset class="auth-group">
+      <legend>About you</legend>
+      <label class="field" for="name">Full name</label>
+      <input id="name" type="text" name="name" autocomplete="name" maxlength="80" required autofocus>
+      <label class="field" for="mobile">Mobile number</label>
+      <input id="mobile" type="tel" name="mobile" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="98765 43210" required aria-describedby="mobile-hint">
+      <p class="hint" id="mobile-hint">10 digits, or with a country code like +91</p>
+      <label class="field" for="email">Email</label>
+      <input id="email" type="email" name="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
+    </fieldset>
+    <fieldset class="auth-group">
+      <legend>Sign-in</legend>
+      <label class="field" for="username">Username</label>
+      <input id="username" type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32" required aria-describedby="user-hint">
+      <p class="hint" id="user-hint">3 to 32 characters: letters, digits, and . _ - @</p>
+      <label class="field" for="password">Password</label>
+      <div class="pw">
+        <input id="password" type="password" name="password" autocomplete="new-password" minlength="{{ min_length }}" required aria-describedby="pw-rules">
+        <button type="button" class="pw-toggle" data-pw-toggle aria-controls="password" aria-pressed="false">Show</button>
+      </div>
+      <label class="field" for="confirm">Type it again</label>
+      <input id="confirm" type="password" name="confirm" autocomplete="new-password" required>
+      <ul class="pw-rules" id="pw-rules">
+        <li data-rule="length">At least {{ min_length }} characters</li>
+        <li data-rule="match">Both entries match</li>
+      </ul>
+    </fieldset>
+    <div id="auth-result" role="alert" aria-live="assertive"></div>
+    <button type="submit" class="btn primary block">{{ 'Create account and continue' if first else 'Create account' }}</button>
+  </form>
+  <p class="muted small">Your name, mobile number and email stay on {{ computer }}. Coinleaf never sends anything to them and doesn't go online. Only a scrambled fingerprint of your password is saved.</p>
+  {% if not first %}<p class="auth-switch">Already have an account? <a href="/login">Log in</a></p>{% endif %}
+{% endblock %}
