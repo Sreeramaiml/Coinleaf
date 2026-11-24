@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf" content="{{ csrf }}">
+  <title>{% block title %}{% endblock %} · Coinleaf</title>
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <script src="/static/theme.js"></script>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-idle-minutes="{{ idle_minutes }}">
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="10" rx="2"/><rect x="13" y="3" width="8" height="6" rx="2"/><rect x="13" y="11" width="8" height="10" rx="2"/><rect x="3" y="15" width="8" height="6" rx="2"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M7 4v16M7 4 4 7M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M12 4 7 9M12 4l5 5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Z"/><path d="M12 10v4M12 17v.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M12 16l-5-5M12 16l5-5M4 20h16"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+</svg>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="/dashboard"><img src="/static/icon.svg" alt="" width="28" height="28"><span>Coinleaf</span></a>
+    <div class="ledger-switch" role="group" aria-label="Which ledger">
+      <button type="button" data-ledger="demo" class="{{ 'on' if kind == 'demo' }}" aria-pressed="{{ 'true' if kind == 'demo' else 'false' }}">Demo</button>
+      <button type="button" data-ledger="mine" class="{{ 'on' if kind == 'mine' }}" aria-pressed="{{ 'true' if kind == 'mine' else 'false' }}">My ledger</button>
+    </div>
+    <nav aria-label="Main">
+      {% set items = [('dashboard', '/dashboard', 'i-dashboard', 'Dashboard'), ('transactions', '/transactions', 'i-list', 'Transactions'), ('import', '/import', 'i-upload', 'Import statement'), ('add', '/add', 'i-plus', 'Add transaction'), ('accounts', '/accounts', 'i-bank', 'Accounts'), ('settings', '/settings', 'i-gear', 'Settings')] %}
+      {% for key, href, icon, label in items %}
+        <a href="{{ href }}" class="{{ 'on' if active == key }}" {% if active == key %}aria-current="page"{% endif %}><svg class="icon"><use href="#{{ icon }}"/></svg><span>{{ label }}</span></a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-foot">
+      {% if kind == 'demo' %}<span class="pill demo">Demo · made-up data</span>{% else %}<span class="pill mine">Your ledger</span>{% endif %}
+<div class="foot-buttons">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch light or dark theme"><svg class="icon icon-moon"><use href="#i-moon"/></svg><svg class="icon icon-sun"><use href="#i-sun"/></svg><span>Theme</span></button>
+      <button type="button" class="theme-toggle" data-lock title="Lock Coinleaf now; your password unlocks it"><svg class="icon"><use href="#i-lock"/></svg><span>Lock</span></button>
+      </div>
+      <div class="foot-note"><svg class="icon"><use href="#i-lock"/></svg>Private: runs only on {{ computer }}</div>
+    </div>
+  </aside>
+  <main class="main">
+    {% if not available %}
+      <section class="card empty-state">
+        {% if kind == 'demo' %}
+          <h1>Try Coinleaf with made-up data</h1>
+          <p>The demo has 14 months of invented bank, card and cash transactions, so you can explore everything safely.</p>
+          <button type="button" class="btn primary" data-create-ledger>Build the demo</button>
+        {% else %}
+          <h1>Create your ledger</h1>
+          <p>Your ledger is an encrypted file on {{ computer }}. Its key is kept in the {{ secret_store }}, and nothing is uploaded anywhere.</p>
+          <button type="button" class="btn primary" data-create-ledger>Create my ledger</button>
+        {% endif %}
+        <div class="result" id="create-result" role="status"></div>
+      </section>
+    {% elif open_error %}
+      <section class="card"><div class="msg error">{{ open_error }}</div></section>
+    {% else %}
+      {% block content %}{% endblock %}
+    {% endif %}
+  </main>
+</div>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+</body>
+</html>

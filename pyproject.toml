@@ -1,0 +1,111 @@
+[project]
+name = "finassist"
+version = "0.1.0"
+description = "Coinleaf: a privacy-preserving personal financial assistant with a local, encrypted ledger."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "sqlcipher3>=0.6.5",
+    "pydantic>=2.9",
+    "typer>=0.12",
+    "rich>=13",
+    "prompt-toolkit>=3.0",
+    "keyring>=25",
+    "platformdirs>=4",
+    "structlog>=24",
+    "charset-normalizer>=3",
+    "anthropic>=1.0",
+    "google-genai>=1.0",
+    "fastapi>=0.165.0",
+    "uvicorn>=0.54.0",
+    "jinja2>=3.1.6",
+    "python-multipart>=0.0.34",
+    "tomlkit>=0.15.2",
+    "pdfplumber>=0.11.11",
+    "fpdf2>=2.9.0",
+    "tzdata>=2025.2",
+]
+
+[project.scripts]
+coinleaf = "finassist.cli.app:main"
+finassist = "finassist.cli.app:main"  # earlier name, kept so existing habits and scripts still work
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "import-linter>=2",
+    "httpx>=0.28.1",
+]
+
+[tool.uv]
+# cryptography (used by pdfminer to open password-protected PDFs) stopped publishing ready-built
+# wheels for Intel Macs after 48.x and for Windows on ARM after 46.0.3. Pin those two platforms
+# to the last versions that have wheels, so no machine needs a Rust compiler to install.
+constraint-dependencies = [
+    "cryptography<49 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "cryptography<=46.0.3 ; sys_platform == 'win32' and platform_machine == 'ARM64'",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/finassist"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["live: calls the real Anthropic API (opt-in, costs money)"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.pycodestyle]
+# The formatter wraps code at 110; long string literals may run to 125.
+max-line-length = 125
+
+[tool.ruff.lint.per-file-ignores]
+"src/finassist/db/migrations/**" = ["E501", "I001", "W291", "F401"]
+"src/finassist/cli/**" = ["B008"]
+"src/finassist/web/**" = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["finassist"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["finassist.core.*", "finassist.db.*", "finassist.analytics.*"]
+strict = true
+
+[tool.importlinter]
+root_package = "finassist"
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture (ARCH section 5)"
+type = "layers"
+layers = [
+    "finassist.web : finassist.cli",
+    "finassist.agent",
+    "finassist.ingest | finassist.analytics",
+    "finassist.db",
+    "finassist.core | finassist.config",
+]
+ignore_imports = []
+
+[[tool.importlinter.contracts]]
+name = "Only agent and cli reach the LLM layer"
+type = "forbidden"
+source_modules = ["finassist.core", "finassist.db", "finassist.analytics", "finassist.ingest"]
+forbidden_modules = ["finassist.llm"]

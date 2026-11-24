@@ -1,0 +1,91 @@
+{# Inline SVG charts. Colours come from CSS classes (s1 = money in, s2 = money out);
+   every chart has hover/keyboard tooltips and a "Show as table" view. #}
+
+{% macro line(c, id) -%}
+<figure class="chart">
+  <svg viewBox="0 0 {{ c.width }} {{ c.height }}" role="img" aria-labelledby="{{ id }}-t">
+    <title id="{{ id }}-t">{{ c.title }}</title>
+    {% for t in c.data.yticks %}
+      <line class="grid" x1="{{ c.data.left }}" x2="{{ c.data.right }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
+      <text class="tick" x="{{ c.data.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.label }}</text>
+    {% endfor %}
+    {% for x in c.data.xlabels %}<text class="tick" x="{{ x.x }}" y="{{ c.data.base + 20 }}" text-anchor="middle">{{ x.label }}</text>{% endfor %}
+    <line class="crosshair" x1="0" x2="0" y1="{{ c.data.top }}" y2="{{ c.data.base }}" visibility="hidden"/>
+    {% for l in c.data.lines %}
+      <path class="line {{ l.cls }}" d="{{ l.d }}"/>
+      {% if l.last %}<circle class="dot {{ l.cls }}" cx="{{ l.last[0] }}" cy="{{ l.last[1] }}" r="4"/>{% endif %}
+    {% endfor %}
+    {% for h in c.data.hits %}
+      <rect class="hit" x="{{ h.x }}" y="{{ c.data.top }}" width="{{ h.w }}" height="{{ c.data.base - c.data.top }}" tabindex="0"
+            data-cx="{{ h.cx }}" data-title="{{ h.title }}" data-rows="{{ h.rows }}" aria-label="{{ h.aria }}"/>
+    {% endfor %}
+  </svg>
+  {{ table(c.data.table_head, c.data.table) }}
+</figure>
+{%- endmacro %}
+
+{% macro columns(c, id) -%}
+<figure class="chart">
+  <svg viewBox="0 0 {{ c.width }} {{ c.height }}" role="img" aria-labelledby="{{ id }}-t">
+    <title id="{{ id }}-t">{{ c.title }}</title>
+    {% for t in c.data.yticks %}
+      <line class="grid" x1="{{ c.data.left }}" x2="{{ c.data.right }}" y1="{{ t.y }}" y2="{{ t.y }}"/>
+      <text class="tick" x="{{ c.data.left - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.label }}</text>
+    {% endfor %}
+    {% for x in c.data.xlabels %}<text class="tick" x="{{ x.x }}" y="{{ c.data.base + 18 }}" text-anchor="middle">{{ x.label }}</text>{% endfor %}
+    {% for b in c.data.cols %}
+      {% if b.d %}<path class="bar {{ c.data.cls }}" d="{{ b.d }}"/>{% endif %}
+      <rect class="hit" x="{{ b.hx }}" y="{{ c.data.top }}" width="{{ b.hw }}" height="{{ c.data.base - c.data.top }}" tabindex="0"
+            data-title="{{ b.title }}" data-rows="{{ b.rows }}" aria-label="{{ b.aria }}"/>
+    {% endfor %}
+  </svg>
+  {{ table(c.data.table_head, c.data.table) }}
+</figure>
+{%- endmacro %}
+
+{% macro hbars(c, id) -%}
+<figure class="chart">
+  {% if c.data.bars %}
+  <svg viewBox="0 0 {{ c.width }} {{ c.height }}" role="img" aria-labelledby="{{ id }}-t">
+    <title id="{{ id }}-t">{{ c.title }}</title>
+    {% for b in c.data.bars %}
+      <text class="label" x="0" y="{{ b.ty }}" dominant-baseline="middle">{{ b.name | truncate(20, True, '…', 0) }}</text>
+      <path class="bar {{ c.data.cls }}" d="{{ b.d }}"/>
+      <text class="value" x="{{ b.vx }}" y="{{ b.ty }}" dominant-baseline="middle">{{ b.value }}</text>
+      <rect class="hit" x="0" y="{{ b.y - 10 }}" width="{{ c.width }}" height="34" tabindex="0"
+            data-title="{{ b.name }}" data-rows="Money out&#9;{{ b.full }}" aria-label="{{ b.name }}: {{ b.full }}"/>
+    {% endfor %}
+  </svg>
+  {{ table(["Paid by", "Money out"], c.data.table) }}
+  {% else %}
+  <p class="muted small">No spending in this period.</p>
+  {% endif %}
+</figure>
+{%- endmacro %}
+
+{% macro spark(s, cls) -%}
+{% if s %}<svg class="spark" viewBox="0 0 {{ s.w }} {{ s.h }}" aria-hidden="true"><path class="spark-line" d="{{ s.d }}"/><circle class="spark-dot {{ cls }}" cx="{{ s.last[0] }}" cy="{{ s.last[1] }}" r="3.5"/></svg>{% endif %}
+{%- endmacro %}
+
+{% macro segbar(seg, id) -%}
+{% if seg.blocks %}
+<svg class="segbar" viewBox="0 0 {{ seg.width }} {{ seg.height }}" role="img" aria-labelledby="{{ id }}-t">
+  <title id="{{ id }}-t">Where your money is</title>
+  {% for b in seg.blocks %}
+    <rect class="seg {{ b.slot }}" x="{{ b.x }}" y="0" width="{{ b.w }}" height="{{ seg.height }}" rx="4" tabindex="0"
+          data-title="{{ b.name }}" data-rows="Balance&#9;{{ b.value }}&#10;Share&#9;{{ b.label }}" aria-label="{{ b.name }}: {{ b.value }}, {{ b.label }}"/>
+    {% if b.fits %}<text class="seg-label {{ b.slot }}" x="{{ b.x + 8 }}" y="{{ b.ty }}" dominant-baseline="middle">{{ b.label }}</text>{% endif %}
+  {% endfor %}
+</svg>
+{% endif %}
+{%- endmacro %}
+
+{% macro table(head, rows) -%}
+<details class="table-view">
+  <summary>Show as table</summary>
+  <table class="data compact">
+    <thead><tr>{% for h in head %}<th class="{{ 'num' if not loop.first }}">{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in rows %}<tr>{% for cell in r %}<td class="{{ 'num' if not loop.first }}">{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+</details>
+{%- endmacro %}

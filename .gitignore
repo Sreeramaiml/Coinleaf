@@ -1,0 +1,77 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Ledger data, backups, and encrypted originals (live outside the repo by default;
+# these guard against a data folder being pointed inside it)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+/backups/
+/originals/
+/data/
+
+# Real financial files must never be committed (NFR-9).
+# Statement, export, and receipt formats are ignored everywhere except generated fixtures.
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.pdf
+*.txt
+*.jpg
+*.jpeg
+*.png
+*.heic
+!/tests/fixtures/**/*.csv
+!/tests/fixtures/**/*.xlsx
+!/tests/fixtures/**/*.xls
+!/tests/fixtures/**/*.pdf
+!/tests/fixtures/**/*.txt
+!/tests/fixtures/**/*.png
+!/tests/fixtures/**/*.jpg
+!/docs/**/*.png
+!/docs/**/*.svg
+
+# Drop folders, generated reports and exports (anchored to the repo root so the
+# src/finassist/reports/ and src/finassist/export/ packages are not ignored)
+/inbox/
+/reports/
+/exports/
+
+# Local config with real paths and account names (only config.example.toml is committed)
+config.toml
+config.local.toml
+*.local.toml
+
+# Logs (structured logs and LLM usage logs carry no payloads, but stay local)
+*.log
+*.jsonl
+logs/
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.import_linter_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/

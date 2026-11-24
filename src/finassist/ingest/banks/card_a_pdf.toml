@@ -1,0 +1,24 @@
+# Card A credit card, text PDF statement (synthetic layout used by the demo and tests).
+# Same columns as the CSV export; owed amounts carry "Dr", payments and refunds "Cr".
+name = "Card A credit card PDF"
+file_kind = "pdf"
+headers = ["Transaction Date", "Details", "Reference", "Foreign Amount", "Foreign Currency", "Amount"]
+date_formats = ["%d-%m-%Y"]
+amount_mode = "amount_suffix"
+default_payment_method = "card"
+account_last4_pattern = 'Card Number\s*:\s*[X*\s]+(\d{4})'
+period_pattern = 'Billing Period\s*:\s*(?P<start>\d{2}-\d{2}-\d{4})\s*to\s*(?P<end>\d{2}-\d{2}-\d{4})'
+period_date_formats = ["%d-%m-%Y"]
+ignore_patterns = ['^this is a computer generated statement']
+
+[columns]
+date = "Transaction Date"
+description = "Details"
+ref = "Reference"
+orig_amount = "Foreign Amount"
+orig_currency = "Foreign Currency"
+amount = "Amount"
+
+[summary_labels]
+opening = "Previous Balance"
+closing = "Current Balance"

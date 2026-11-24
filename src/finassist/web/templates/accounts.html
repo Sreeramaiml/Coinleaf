@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Accounts{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Accounts</h1><p class="muted">Balances are worked out from the ledger: opening balance plus every transaction.</p></div></header>
+
+{% if rows %}
+<section class="grid accounts">
+  {% for r in rows %}
+  <article class="card account-card">
+    <div class="account-top"><span class="avatar">{{ r.name | initials }}</span><span class="tag">{{ r.type }}</span></div>
+    <div class="account-name">{{ r.name }}</div>
+    <div class="muted small">{{ r.full }}{% if r.institution %} · {{ r.institution }}{% endif %}{% if r.last4 %} · •••• {{ r.last4 }}{% endif %}</div>
+    <div class="account-balance {{ 'neg' if r.balance < 0 }}">{{ r.balance | inr }}</div>
+    {% if r.type == 'Credit card' and r.balance < 0 %}<div class="muted small">owed on this card</div>{% endif %}
+    <div class="coverage small">
+      {% if r.coverage.covered %}Statements: {{ r.coverage.covered | join(', ') }}
+      {% elif r.coverage.transactions_from %}Entered by hand: {{ r.coverage.transactions_from }} to {{ r.coverage.transactions_to }}
+      {% else %}No data yet · <a href="/import">Import a statement</a>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="card empty"><h2>No accounts yet</h2><p class="muted">Add your bank accounts, cards and cash below, then import statements into them.</p></section>
+{% endif %}
+
+<section class="card">
+  <details class="add-account" {{ 'open' if not rows }}>
+    <summary><svg class="icon"><use href="#i-plus"/></svg>Add an account</summary>
+    <form class="form grid-form" data-api="/api/account/add" data-target="#account-result">
+      <label class="field">Name<input name="name" placeholder="HDFC Savings" required maxlength="80"></label>
+      <label class="field">Type<select name="type">{% for t in account_types %}<option value="{{ t }}">{{ type_labels[t] }}</option>{% endfor %}</select></label>
+      <label class="field">Short name<input name="nickname" placeholder="Savings account" maxlength="40"></label>
+      <label class="field">Bank or provider<input name="institution" placeholder="optional" maxlength="80"></label>
+      <label class="field">Last 4 digits<input name="last4" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="optional"></label>
+      <label class="field">Opening balance (₹)<input name="opening" value="0" inputmode="decimal"></label>
+      <div class="form-actions"><button type="submit" class="btn primary">Add account</button></div>
+    </form>
+    <div id="account-result" class="result" role="status"></div>
+  </details>
+</section>
+{% endblock %}

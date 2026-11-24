@@ -1,0 +1,27 @@
+<header class="page-head"><div><h1>Welcome to Coinleaf</h1>
+  <p class="muted">Three steps and your dashboard fills in. Everything stays encrypted on {{ computer }}.</p></div></header>
+<section class="card onboarding">
+  <ol class="checklist">
+    <li class="{{ 'done' if onboarding.accounts }}">
+      <span class="check" aria-hidden="true">{{ '✓' if onboarding.accounts else '1' }}</span>
+      <div><div class="step-title">Add your accounts</div><div class="muted small">Your bank accounts, credit cards and cash. A short name and the last 4 digits help match statements.</div></div>
+      {% if onboarding.accounts %}<span class="pill ok">Done</span>{% else %}<a class="btn primary" href="/accounts">Add accounts</a>{% endif %}
+    </li>
+    <li>
+      <span class="check" aria-hidden="true">2</span>
+      <div><div class="step-title">Import a statement</div><div class="muted small">Upload a CSV statement from your bank or card. You'll see a preview before anything is saved.</div></div>
+      <a class="btn {{ 'primary' if onboarding.accounts }}" href="/import">Import</a>
+    </li>
+    <li>
+      <span class="check" aria-hidden="true">3</span>
+      <div><div class="step-title">Add cash spending</div><div class="muted small">For anything that isn't in a statement, like an auto ride paid in cash.</div></div>
+      <a class="btn" href="/add">Add</a>
+    </li>
+  </ol>
+</section>
+{% if kind == 'mine' %}
+<section class="card demo-cta">
+  <div><h2>Want to look around first?</h2><p class="muted">The demo has 14 months of made-up transactions, so you can try every page safely.</p></div>
+  <button type="button" class="btn" data-ledger="demo">Open the demo</button>
+</section>
+{% endif %}

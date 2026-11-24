@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Add transaction{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Add a transaction</h1><p class="muted">For cash and anything that isn't in a statement. You'll see a preview before it's saved.</p></div></header>
+<section class="card narrow">
+  {% if not accounts %}
+    <div class="msg info">Add an account first, on the <a href="/accounts">Accounts</a> page.</div>
+  {% else %}
+  <form class="form" data-api="/api/add/preview" data-target="#add-result">
+    <fieldset class="segmented">
+      <legend class="sr">Money in or out</legend>
+      <label><input type="radio" name="direction" value="out" checked><span>Money out</span></label>
+      <label><input type="radio" name="direction" value="in"><span>Money in</span></label>
+    </fieldset>
+    <label class="field">Amount
+      <span class="money-input"><span class="prefix">₹</span><input name="amount" inputmode="decimal" placeholder="450" required autocomplete="off"></span>
+    </label>
+    <label class="field">What was it for?<input name="description" placeholder="Auto rickshaw to office" required maxlength="200"></label>
+    <div class="row">
+      <label class="field">Account<select name="account">{% for a in accounts %}<option>{{ a }}</option>{% endfor %}</select></label>
+      <label class="field">Date<input type="date" name="date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required></label>
+    </div>
+    <label class="field">Category
+      <select name="category"><option value="">Uncategorised</option>
+        {% for parent, names in groups.items() %}<optgroup label="{{ parent }}">{% for n in names %}<option value="{{ parent }}/{{ n }}">{{ n }}</option>{% endfor %}</optgroup>{% endfor %}
+      </select>
+    </label>
+    <div class="form-actions"><button type="submit" class="btn primary">Preview</button></div>
+  </form>
+  {% endif %}
+  <div id="add-result" class="result" role="status"></div>
+</section>
+{% endblock %}

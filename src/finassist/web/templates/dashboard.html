@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% import "partials/charts.html" as ch %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% if onboarding is defined %}{% include "partials/onboarding.html" %}{% else %}
+<header class="topbar">
+  <div class="hero-block">
+    <div class="eyebrow">Available balance</div>
+    <div class="hero">{{ d.available | inr }}</div>
+    <div class="muted small">Savings, current and cash{% if account %} · {{ account }}{% endif %} · as of {{ d.today.strftime('%d %b %Y') }}</div>
+  </div>
+  <div class="topbar-right">
+    <div class="date-pill"><svg class="icon"><use href="#i-calendar"/></svg>{{ today.strftime('%A, %d %B %Y') }}</div>
+    <form class="filters" method="get" action="/dashboard" data-autosubmit>
+      <label><span class="sr">Period</span>
+        <select name="period" aria-label="Period">{% for v, l in options %}<option value="{{ v }}" {{ 'selected' if v == chosen }}>{{ l }}</option>{% endfor %}</select>
+      </label>
+      <label><span class="sr">Account</span>
+        <select name="account" aria-label="Account"><option value="">All accounts</option>{% for a in accounts %}<option {{ 'selected' if a == account }}>{{ a }}</option>{% endfor %}</select>
+      </label>
+      <noscript><button class="btn" type="submit">Apply</button></noscript>
+    </form>
+  </div>
+</header>
+
+{% if warn %}<div class="msg warn">{{ warn }}</div>{% endif %}
+{% if gaps %}
+<div class="banner warn" role="status">
+  <svg class="icon"><use href="#i-warn"/></svg>
+  <div><strong>Some data is missing for {{ d.period.label }}</strong>, so these totals may be incomplete. {{ gaps | join('; ') }}.
+    <a href="/import">Import a statement</a></div>
+</div>
+{% endif %}
+
+<section class="grid kpis">
+  <article class="card networth">
+    <div class="eyebrow">Net worth</div>
+    <div class="kpi-value">{{ d.net_worth | inr }}</div>
+    <div class="small">Everything you have{% if d.card_owed %}, minus {{ d.card_owed | inr }} owed on cards{% endif %}</div>
+  </article>
+  {% for k in kpis %}
+  <article class="card kpi">
+    <div class="kpi-head">
+      <span class="eyebrow">{{ k.label }}</span>
+      {{ ch.spark(k.spark, 's2' if k.type == 'out' else 's1') }}
+    </div>
+    <div class="kpi-value">{{ k.value | inr }}</div>
+    <div class="kpi-foot">
+      {% if k.delta %}<span class="delta {{ k.delta.tone }}" aria-label="{{ k.delta.aria }} compared with {{ d.previous.label }}">{{ k.delta.arrow }} {{ k.delta.text }}</span>
+      <span class="muted">vs {{ d.previous.label }}</span>{% else %}<span class="muted">No earlier period to compare</span>{% endif %}
+    </div>
+    <div class="kpi-meta muted small">
+      {% if k.rate is defined %}{% if k.rate is not none %}Savings rate {{ k.rate }}%{% else %}No income in this period{% endif %}
+      {% else %}{{ k.count }} transaction{{ '' if k.count == 1 else 's' }} · <a href="/transactions?period={{ chosen | urlencode }}&account={{ (account or '') | urlencode }}&type={{ k.type }}">View</a>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="grid two">
+  <article class="card span2">
+    <div class="card-head">
+      <div><h2>Income and spending</h2><div class="muted small">Last 12 months, ending {{ d.period.end.strftime('%B %Y') }}</div></div>
+      <ul class="legend"><li><span class="key line s1"></span>Money in</li><li><span class="key line s2"></span>Money out</li></ul>
+    </div>
+    <div class="peaks">
+      {% if peak_out and peak_out.out %}<div><div class="peak-value">{{ peak_out.out | inr_short }}</div><div class="muted small">Highest spending · {{ month_name(peak_out.month) }}</div></div>{% endif %}
+      {% if peak_in and peak_in['in'] %}<div><div class="peak-value">{{ peak_in['in'] | inr_short }}</div><div class="muted small">Highest income · {{ month_name(peak_in.month) }}</div></div>{% endif %}
+    </div>
+    {{ ch.line(line, 'trend') }}
+  </article>
+
+  <article class="card">
+    <div class="card-head"><h2>Top payees</h2><a class="see-all" href="/transactions?period={{ chosen | urlencode }}&account={{ (account or '') | urlencode }}&type=out">View all<svg class="icon sm"><use href="#i-arrow"/></svg></a></div>
+    {% if d.top_payees %}
+    <ul class="people">
+      {% for name, total, n in d.top_payees %}
+      <li>
+        <span class="avatar">{{ name | initials }}</span>
+        <div class="person">
+          <div class="person-row"><span class="person-name">{{ name }}</span><span class="amount">{{ total | inr }}</span></div>
+          <div class="meter" aria-hidden="true"><svg viewBox="0 0 100 6" preserveAspectRatio="none"><rect class="meter-track" width="100" height="6" rx="3"/><rect class="meter-fill s2" width="{{ (total * 100 / top_payee_max) if top_payee_max else 0 }}" height="6" rx="3"/></svg></div>
+          <div class="muted small">{{ n }} payment{{ '' if n == 1 else 's' }}</div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="muted tiny">Payees are read from statement descriptions. Categories arrive in a later version.</p>
+    {% else %}<p class="muted">No spending in this period.</p>{% endif %}
+  </article>
+</section>
+
+<section class="grid two">
+  <article class="card span2">
+    {% if daily %}
+      <div class="card-head"><div><h2>Spending per day</h2><div class="muted small">{{ d.period.start.strftime('%B %Y') }}</div></div></div>
+      {{ ch.columns(daily, 'daily') }}
+    {% else %}
+      <div class="card-head"><h2>Spending per day</h2></div>
+      <p class="muted">Choose a single month in the period menu to see spending day by day.</p>
+    {% endif %}
+  </article>
+  <article class="card">
+    <div class="card-head"><div><h2>How you paid</h2><div class="muted small">Money out by payment method</div></div></div>
+    {{ ch.hbars(methods, 'methods') }}
+  </article>
+</section>
+
+<section class="grid two">
+  <article class="card">
+    <div class="card-head"><div><h2>Where your money is</h2><div class="muted small">Accounts with a positive balance</div></div><a class="see-all" href="/accounts">Accounts<svg class="icon sm"><use href="#i-arrow"/></svg></a></div>
+    {% if seg.blocks %}
+      <div class="seg-total">{{ seg.total }}</div>
+      {{ ch.segbar(seg, 'where') }}
+      <ul class="seg-legend">
+        {% for b in seg.blocks %}<li><span class="key box {{ b.slot }}"></span><span class="seg-name">{{ b.name }}</span><span class="amount">{{ b.value }}</span><span class="muted small">{{ b.label }}</span></li>{% endfor %}
+      </ul>
+    {% else %}<p class="muted">No accounts with a positive balance.</p>{% endif %}
+    {% if d.card_owed %}<div class="owed"><span>Owed on credit cards</span><span class="amount">{{ d.card_owed | inr }}</span></div>{% endif %}
+  </article>
+
+  <article class="card span2">
+    <div class="card-head"><h2>Recent transactions</h2><a class="see-all" href="/transactions?period={{ chosen | urlencode }}&account={{ (account or '') | urlencode }}">View all<svg class="icon sm"><use href="#i-arrow"/></svg></a></div>
+    {% if d.recent %}
+    <ul class="txn-list">
+      {% for r in d.recent %}
+      <li>
+        <span class="avatar">{{ r.payee | initials }}</span>
+        <div class="txn-main"><div class="txn-payee">{{ r.payee }}</div><div class="muted small">{{ r.account }} · {{ r.method }}</div></div>
+        <div class="txn-side"><div class="amount {{ 'pos' if r.amount > 0 }}">{{ '+' if r.amount > 0 }}{{ r.amount | inr }}</div><div class="muted small">{{ r.date.strftime('%d %b %Y') }}</div></div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">No transactions in this period. <a href="/import">Import a statement</a> or <a href="/add">add one by hand</a>.</p>{% endif %}
+  </article>
+</section>
+{% endif %}
+{% endblock %}

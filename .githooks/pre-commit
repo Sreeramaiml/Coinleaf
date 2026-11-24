@@ -1,0 +1,6 @@
+#!/bin/sh
+# Enable with: git config core.hooksPath .githooks
+# Refuses statement-like files under tests/fixtures/ that lack the generator marker.
+files=$(git diff --cached --name-only --diff-filter=AM -- 'tests/fixtures/*' | grep -E '\.(csv|tsv|xls|xlsx|pdf|txt)$')
+[ -z "$files" ] && exit 0
+exec python3 scripts/check_fixtures.py $files

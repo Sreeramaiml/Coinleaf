@@ -1,0 +1,16 @@
+<div class="card preview">
+  <div class="card-head"><h2>Check before saving</h2><span class="pill warn">Not saved yet</span></div>
+  <div class="preview-amount {{ 'pos' if t.amount_minor > 0 }}">{{ '+' if t.amount_minor > 0 }}{{ t.amount_minor | inr }}</div>
+  <dl class="facts two-col">
+    <dt>For</dt><dd>{{ t.raw_description }}</dd>
+    <dt>Account</dt><dd>{{ t.account.nickname }}</dd>
+    <dt>Date</dt><dd>{{ t.txn_date.strftime('%A, %d %B %Y') }}</dd>
+    <dt>Category</dt><dd>{{ category }}</dd>
+  </dl>
+  <form data-api="/api/add/save" data-target="#add-result" class="form-actions">
+    {% for k, v in form.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <input type="hidden" name="token" value="{{ token }}">
+    <button type="submit" name="answer" value="yes" class="btn primary">Save</button>
+    <button type="submit" name="answer" value="no" class="btn">Cancel</button>
+  </form>
+</div>

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Transactions</h1><p class="muted">{{ p.label if p is defined else '' }}{% if p is defined %} · {{ p.start.strftime('%d %b %Y') }} – {{ p.end.strftime('%d %b %Y') }}{% endif %}</p></div>
+  <div class="actions">
+    <a class="btn" href="/transactions.csv?period={{ query.period | urlencode }}&account={{ query.account | urlencode }}&type={{ query.type }}&q={{ query.q | urlencode }}"><svg class="icon"><use href="#i-download"/></svg>Export CSV</a>
+    <a class="btn primary" href="/add"><svg class="icon"><use href="#i-plus"/></svg>Add transaction</a>
+  </div>
+</header>
+
+<form class="filters bar" method="get" action="/transactions" data-autosubmit>
+  <select name="period" aria-label="Period">{% for v, l in options %}<option value="{{ v }}" {{ 'selected' if v == chosen }}>{{ l }}</option>{% endfor %}</select>
+  <select name="account" aria-label="Account"><option value="">All accounts</option>{% for a in accounts %}<option {{ 'selected' if a == account }}>{{ a }}</option>{% endfor %}</select>
+  <select name="type" aria-label="Money in or out">
+    <option value="" {{ 'selected' if not type }}>Money in and out</option>
+    <option value="in" {{ 'selected' if type == 'in' }}>Money in</option>
+    <option value="out" {{ 'selected' if type == 'out' }}>Money out</option>
+  </select>
+  <input type="search" name="q" value="{{ q or '' }}" placeholder="Search: swiggy, rent, salary…" aria-label="Search descriptions">
+  <button class="btn" type="submit">Search</button>
+</form>
+{% if warn %}<div class="msg warn">{{ warn }}</div>{% endif %}
+
+<div class="summary">
+  <span class="chip">{{ lst.total }} transaction{{ '' if lst.total == 1 else 's' }}</span>
+  <span class="chip">Money in <strong class="pos">{{ lst.money_in | inr }}</strong></span>
+  <span class="chip">Money out <strong>{{ lst.money_out | inr }}</strong></span>
+</div>
+
+<section class="card flush">
+  {% if lst.rows %}
+  <div class="table-wrap">
+    <table class="data sheet">
+      <thead><tr><th>Date</th><th>Payee</th><th>Account</th><th>Category</th><th>Paid by</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+      {% for r in lst.rows %}
+        <tr>
+          <td class="nowrap">{{ r.date.strftime('%d %b %Y') }}</td>
+          <td><div class="payee-cell"><span class="avatar sm">{{ r.payee | initials }}</span><div><div class="txn-payee">{{ r.payee }}</div><div class="muted tiny desc" title="{{ r.description }}">{{ r.description }}</div></div></div></td>
+          <td>{{ r.account }}</td>
+          <td>{% if r.category == 'Uncategorised' %}<span class="tag muted-tag">Uncategorised</span>{% else %}<span class="tag">{{ r.category }}</span>{% endif %}</td>
+          <td>{{ r.method }}</td>
+          <td class="num amount {{ 'pos' if r.amount > 0 }}">{{ '+' if r.amount > 0 }}{{ r.amount | inr }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pages > 1 %}
+  <nav class="pager" aria-label="Pages">
+    {% set base = '/transactions?period=' ~ (query.period | urlencode) ~ '&account=' ~ (query.account | urlencode) ~ '&type=' ~ query.type ~ '&q=' ~ (query.q | urlencode) %}
+    {% if page_no > 1 %}<a class="btn" href="{{ base }}&page_no={{ page_no - 1 }}">← Newer</a>{% else %}<span></span>{% endif %}
+    <span class="muted">Page {{ page_no }} of {{ pages }}</span>
+    {% if page_no < pages %}<a class="btn" href="{{ base }}&page_no={{ page_no + 1 }}">Older →</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="empty">
+    <h2>No transactions match</h2>
+    <p class="muted">Try another period or account, clear the search, or <a href="/import">import a statement</a>.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf" content="{{ csrf }}">
+  <title>{% block title %}{% endblock %} · Coinleaf</title>
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <script src="/static/theme.js"></script>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body class="auth">
+<main class="auth-wrap">
+  <section class="auth-card" aria-labelledby="auth-title">
+    <img class="auth-logo" src="/static/icon.svg" alt="" width="64" height="64">
+    <p class="auth-brand">Coinleaf</p>
+    {% block content %}{% endblock %}
+  </section>
+  <p class="auth-foot"><svg class="icon sm" aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    Runs only on {{ computer }}. Locks after {{ idle_minutes }} minutes without use.</p>
+</main>
+</body>
+</html>

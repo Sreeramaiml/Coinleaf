@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Settings</h1><p class="muted">About this ledger and how your data is kept.</p></div></header>
+
+<section class="card">
+  <h2>Appearance</h2>
+  <div class="row between">
+    <div><div>Theme</div><div class="muted small">Follows your computer's setting until you choose. Your choice is remembered in this browser.</div></div>
+    <button type="button" class="btn" data-theme-toggle><svg class="icon icon-moon"><use href="#i-moon"/></svg><svg class="icon icon-sun"><use href="#i-sun"/></svg>Switch light / dark</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Password</h2>
+  <p class="muted small">Coinleaf asks for this password each time it opens, and locks itself after {{ idle_minutes }} minutes without use. Changing it signs out any other open browser.</p>
+  <form data-api="/api/password" data-target="#pw-result" class="pw-change" data-pw-rules>
+    <input type="text" name="username" value="Coinleaf" autocomplete="username" hidden>
+    <label class="field">Current password<input type="password" name="current" autocomplete="current-password" required></label>
+    <label class="field">New password<input id="password" type="password" name="password" autocomplete="new-password" minlength="8" required></label>
+    <label class="field">Type the new one again<input id="confirm" type="password" name="confirm" autocomplete="new-password" required></label>
+    <ul class="pw-rules"><li data-rule="length">At least 8 characters</li><li data-rule="match">Both entries match</li></ul>
+    <div class="form-actions"><button type="submit" class="btn primary">Change password</button><button type="button" class="btn" data-lock>Lock now</button></div>
+    <div id="pw-result" role="status"></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Your data</h2>
+  <dl class="facts">
+    <dt>Ledger in use</dt><dd>{{ 'Demo (made-up data)' if kind == 'demo' else 'My ledger' }}</dd>
+    <dt>Database file</dt><dd><code>{{ db_file }}</code></dd>
+    <dt>Encryption</dt><dd>SQLCipher, 256-bit key {{ 'in a private file next to the demo (made-up data only)' if kind == 'demo' else 'kept in the ' ~ secret_store }}</dd>
+    <dt>Network</dt><dd>This app makes no internet connections. It is reachable only from {{ computer }}.</dd>
+    <dt>Settings file</dt><dd><code>{{ config_path }}</code></dd>
+  </dl>
+</section>
+
+{% if kind == 'demo' and available %}
+<section class="card danger">
+  <h2>Start the demo again</h2>
+  <p class="muted">Rebuilds the demo with fresh made-up data, undoing anything you imported or added there. Your own ledger is not touched.</p>
+  <details>
+    <summary class="btn">Rebuild the demo…</summary>
+    <p>Are you sure?</p>
+    <button type="button" class="btn danger" data-create-ledger>Yes, rebuild the demo</button>
+    <div class="result" id="create-result" role="status"></div>
+  </details>
+</section>
+{% endif %}
+{% endblock %}

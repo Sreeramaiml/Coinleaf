@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Import statement{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Import a statement</h1><p class="muted">Nothing is saved until you check the preview and click Import. Importing the same file twice changes nothing.</p></div></header>
+
+<ol class="steps"><li class="on">Choose a file</li><li>Check the preview</li><li>Import</li></ol>
+
+<section class="card">
+  <form class="upload" data-api="/api/import/preview" data-target="#import-result">
+    <label class="dropzone">
+      <svg class="icon xl"><use href="#i-upload"/></svg>
+      <span class="drop-title">Choose a CSV or PDF statement</span>
+      <span class="muted small" data-file-name>or drop it here</span>
+      <span class="formats"><span class="tag">CSV</span><span class="tag">PDF</span><span class="tag">Password-protected PDF</span></span>
+      <input type="file" name="file" accept=".csv,.pdf,text/csv,application/pdf" required>
+    </label>
+    <div class="row">
+      <label class="field">Account
+        <select name="account">
+          <option value="">Detect from the statement</option>
+          {% for a in accounts %}<option>{{ a }}</option>{% endfor %}
+        </select></label>
+      <label class="field">PDF password <span class="muted small">(only if the PDF asks for one)</span>
+        <input type="password" name="password" autocomplete="off" placeholder="Leave empty if none"></label>
+      <button type="submit" class="btn primary">Preview</button>
+    </div>
+  </form>
+  <p class="muted small">Reads Bank A and Card A statements as CSV, and text-PDF statements from most banks (the column layout is detected automatically; check the preview before importing). A PDF password is only used to open the file on {{ computer }}; it isn't saved anywhere. Scanned (image) PDFs are refused with a clear message.</p>
+</section>
+
+<div id="import-result" class="result" role="status"></div>
+
+{% if inbox %}
+<section class="card">
+  <div class="card-head"><div><h2>Demo statements</h2><div class="muted small">The demo leaves the October 2026 card statement for you to import, as CSV or PDF. The October bank statement is also there as a password-protected PDF (its rows are already in the ledger, so it shows how re-importing changes nothing).</div></div></div>
+  <ul class="file-list">
+    {% for f in inbox %}
+      <li>
+        <span class="tag {{ 'muted-tag' if not f.pdf }}">{{ 'PDF' if f.pdf else 'CSV' }}</span>
+        <span class="file-name">{{ f.name }}{% if f.password %} <span class="muted small">· password <code>{{ f.password }}</code></span>{% endif %}</span>
+        {% if f.imported %}<span class="pill ok">Imported</span>{% else %}<span class="pill warn">Not imported</span>{% endif %}
+        <form class="inline" data-api="/api/import/preview" data-target="#import-result">
+          <input type="hidden" name="inbox_name" value="{{ f.name }}">
+          {% if f.password %}<input type="password" name="password" class="pw" autocomplete="off" placeholder="Password" aria-label="PDF password for {{ f.name }}">{% endif %}
+          <button type="submit" class="btn sm">Preview</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

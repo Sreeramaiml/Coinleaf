@@ -1,0 +1,26 @@
+# Bank A savings account, text PDF statement (synthetic layout used by the demo and tests).
+# Same columns as the CSV export, printed in landscape; amounts right-aligned under
+# right-aligned headings; long narrations wrap onto the next line; a footer "Page n of m".
+# Bank A protects its PDFs with a password (the demo's is shown on the Import page).
+name = "Bank A savings PDF"
+file_kind = "pdf"
+headers = ["Date", "Narration", "Chq/Ref No", "Value Dt", "Withdrawal Amt", "Deposit Amt", "Closing Balance"]
+date_formats = ["%d/%m/%Y", "%d/%m/%y"]
+amount_mode = "debit_credit"
+account_last4_pattern = 'Account Number\s*:\s*X+(\d{4})'
+period_pattern = 'Statement Period\s*:\s*(?P<start>\d{2}/\d{2}/\d{4})\s*to\s*(?P<end>\d{2}/\d{2}/\d{4})'
+period_date_formats = ["%d/%m/%Y"]
+ignore_patterns = ['^this is a computer generated statement']
+
+[columns]
+date = "Date"
+description = "Narration"
+ref = "Chq/Ref No"
+value_date = "Value Dt"
+debit = "Withdrawal Amt"
+credit = "Deposit Amt"
+balance = "Closing Balance"
+
+[summary_labels]
+opening = "Opening Balance"
+closing = "Closing Balance"

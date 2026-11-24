@@ -1,0 +1,35 @@
+<div class="card preview">
+  <div class="card-head"><h2>Preview: {{ fm.file }}</h2>
+    {% if fm.status == 'ready' %}<span class="pill warn">Not saved yet</span>{% endif %}</div>
+  {% if fm.status in ('ready', 'nothing_new', 'already_imported') %}
+  <dl class="facts two-col">
+    <dt>Account</dt><dd>{{ fm.account }}</dd>
+    {% if fm.period.start %}<dt>Statement period</dt><dd>{{ fm.period.start }} to {{ fm.period.end }}</dd>{% endif %}
+    {% if fm.status != 'already_imported' %}
+    <dt>Rows read</dt><dd>{{ fm.rows_parsed }}</dd>
+    <dt>New transactions</dt><dd><strong>{{ fm.new_rows }}</strong>{% if fm.already_in_ledger %} <span class="muted">({{ fm.already_in_ledger }} already in your ledger, skipped)</span>{% endif %}</dd>
+    <dt>Money out</dt><dd>{{ fm.money_out_new.display }}</dd>
+    <dt>Money in</dt><dd>{{ fm.money_in_new.display }}</dd>
+    {% endif %}
+  </dl>
+  {% if fm.file_check %}
+    <div class="msg {{ 'ok' if '✓' in fm.file_check else 'warn' }}">{{ 'Balances check out: ' if '✓' in fm.file_check else 'Balance check failed: ' }}{{ fm.file_check | replace('file check: ', '') }}</div>
+  {% endif %}
+  {% for n in fm.notes or [] %}<div class="msg info">{{ n }}</div>{% endfor %}
+  {% endif %}
+  {% if fm.status == 'ready' %}
+    <form data-api="/api/import/commit" data-target="#import-result" class="form-actions">
+      <input type="hidden" name="import_id" value="{{ fm.import_id }}">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button type="submit" name="answer" value="yes" class="btn primary">Import {{ fm.new_rows }} transaction{{ '' if fm.new_rows == 1 else 's' }}</button>
+      <button type="submit" name="answer" value="no" class="btn">Cancel</button>
+    </form>
+  {% elif fm.status == 'already_imported' %}
+    <div class="msg info">This file is already imported. Nothing to do.</div>
+  {% elif fm.status == 'nothing_new' %}
+    <div class="msg info">Every row in this file is already in your ledger.</div>
+  {% else %}
+    <div class="msg error">{{ fm.message }}</div>
+    {% if fm.errors %}<ul class="errors">{% for e in fm.errors %}<li>Line {{ e.line }}: {{ e.message }}</li>{% endfor %}</ul>{% endif %}
+  {% endif %}
+</div>

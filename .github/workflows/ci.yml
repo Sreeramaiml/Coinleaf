@@ -1,0 +1,32 @@
+# Runs the full check suite on Windows, Linux and macOS for every push and pull request.
+name: checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]  # macos-13 = Intel
+        python: ["3.12", "3.14"]
+    runs-on: ${{ matrix.os }}
+    env:
+      FINASSIST_KEYSTORE: file  # CI machines have no unlocked OS secret store
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src
+      - run: uv run lint-imports
+      - run: uv run pytest

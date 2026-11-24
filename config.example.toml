@@ -1,0 +1,63 @@
+# Coinleaf configuration. Copy to:
+#   ~/Library/Application Support/finassist/config.toml
+# (or point FINASSIST_CONFIG at another file). Every key is optional; the values shown
+# here are the defaults. An unknown or invalid key stops start-up with a message naming it.
+# Secrets never go in this file: the database key and API key live in the macOS Keychain.
+
+[general]
+# Time zone used for "today", "this month" and other relative periods.
+timezone = "Asia/Kolkata"
+# Currency of your accounts unless an account says otherwise.
+base_currency = "INR"
+# First month of the financial year (4 = April, the Indian FY).
+fy_start_month = 4
+
+[periods]
+# What "Q1".."Q4" mean: "fy" (Q1 = Apr–Jun) or "calendar" (Q1 = Jan–Mar).
+# Answers always state the resolved dates, so a wrong guess is visible.
+quarter_convention = "fy"
+
+[privacy]
+# cloud = the configured provider's API ([llm] provider), with redaction (see PRIVACY.md)
+# local = local model on this machine only (arrives in P2); no network at all
+# off   = no language model; slash commands only
+# Override for one run with FINASSIST_LLM_MODE=off
+llm_mode = "cloud"
+
+[llm]
+# Which API answers chat questions: "gemini" (default) or "anthropic".
+provider = "gemini"
+# Models. Leave empty to use the provider's default:
+#   gemini:    chat "gemini-3.8-flash", classification "gemini-3.5-flash-lite"
+#   anthropic: chat "claude-opus-5-5",  classification "claude-haiku-5-5"
+chat_model = ""
+classify_model = ""
+# Reasoning depth: low | medium | high | xhigh | max.
+# Gemini: thinking_level (max is sent as xhigh; gemini-3.8-flash accepts low, medium, high).
+effort = "medium"
+max_tokens = 16000
+# Tool calls per question before the assistant stops.
+max_iterations = 8
+# The only host chat may contact. Empty = the provider's API host
+# (generativelanguage.googleapis.com or api.anthropic.com).
+api_host = ""
+
+# Gemini only.
+# Google's free tier may use what you send to improve its products, and human reviewers may
+# read it. Your real ledger is not sent to Gemini until you set this to true, confirming your
+# API key belongs to a billing-enabled Google Cloud project (paid tier). The demo works without it.
+gemini_paid_tier = false
+# Per-request logging (`store`). false asks Google not to log the request.
+gemini_store = false
+
+# Anthropic only.
+# Strict tool schemas (arguments guaranteed to match). Turn off only if the API rejects them.
+strict_tools = true
+# Server-side fallback if the model declines a request.
+refusal_fallbacks = true
+
+[import]
+
+[demo]
+# Pin "today" to a fixed date (used by the demo and tests). Leave unset normally.
+# today = 2026-11-05
